@@ -1,7 +1,7 @@
  # 1. Veri Hazırlama
 Bu aşamada, orijinal DICOM görüntüleri ve etiket verileri gruplara ayrılarak, derin öğrenme modellerinde yaygın olarak kullanılan NIfTI formatına dönüştürülür.
 
-Klasörlerin Gruplandırılması:
+## Klasörlerin Gruplandırılması:
 DICOM dosyaları genellikle çok sayıda görüntü dosyasından oluşur. Bellek yönetimi ve işlem kolaylığı için, her hasta verisi 64 görüntülük alt klasörlere bölünür.
 
 in_path: Orijinal DICOM görüntü ve etiket klasörleri (örn: D:/Task03_Liver/dicom_file/labels, D:/Task03_Liver/dicom_file/images)
@@ -9,7 +9,7 @@ in_path: Orijinal DICOM görüntü ve etiket klasörleri (örn: D:/Task03_Liver/
 out_path: 64 görüntülük DICOM gruplarının kaydedileceği yeni klasörler (örn: D:/Task03_Liver/dicom_groups/labels, D:/Task03_Liver/dicom_groups/images)
 Her hasta için dosyalar, maksimum 64 dosya içeren alt klasörlere taşınır.
 
-DICOM’dan NIfTI Formatına Dönüşüm:
+## DICOM’dan NIfTI Formatına Dönüşüm:
 DICOM grupları, derin öğrenme uygulamalarında yaygın kullanılan NIfTI formatına dönüştürülür.
 
 dicom2nifti kütüphanesi kullanılır.
@@ -18,7 +18,7 @@ Her alt klasördeki DICOM serisi .nii.gz uzantılı NIfTI dosyasına çevrilir.
 
 Dönüştürülen dosyalar sırasıyla nifti_files/images ve nifti_files/labels klasörlerine kaydedilir.
 
-Etiket Verilerinin Kontrolü:
+## Etiket Verilerinin Kontrolü:
 Oluşan NIfTI dosyalarındaki etiketlerin boş olup olmadığı kontrol edilir.
 
 Her .nii.gz dosyası nibabel ile yüklenir.
@@ -27,27 +27,18 @@ Her .nii.gz dosyası nibabel ile yüklenir.
 
 Dosyada tek bir eşsiz değer (genellikle 0) varsa, bu dosyanın boş olduğu anlamına gelir ve uyarı verilir.
 
-Gereksinimler:
-Bu aşama için gerekli Python paketleri şunlardır:
-
-bash
-Kopyala
-Düzenle
-pip install glob2 pytest-shutil pydicom==2.3.1 dicom2nifti==2.4.6 nibabel numpy
-2. Veri Ön İşleme (Preprocessing)
+# 2. Veri Ön İşleme (Preprocessing)
 Medikal görüntüler, MONAI kütüphanesinin gelişmiş transformları kullanılarak modelin ihtiyacına uygun hale getirilir.
 
-Veri Seti Yapısı:
+## Veri Seti Yapısı:
 
-bash
-Kopyala
-Düzenle
 /path_to_data/
 ├── TrainVolumes/       # Eğitim görüntüleri
 ├── TrainSegmentation/  # Eğitim etiketleri
 ├── TestVolumes/        # Doğrulama görüntüleri
 └── TestSegmentation/   # Doğrulama etiketleri
-prepare Fonksiyonu:
+
+## prepare Fonksiyonu:
 
 Veri dizinindeki dosyalar eşleştirilir ve listeler oluşturulur.
 
@@ -65,10 +56,10 @@ Görüntüler hedef boyuta göre kırpılır veya pad edilir (ResizeWithPadOrCro
 
 Son olarak PyTorch tensörlerine dönüştürülür (ToTensord).
 
-Cache Kullanımı:
+## Cache Kullanımı:
 cache=True seçeneğiyle veriler belleğe önceden yüklenip eğitim süreci hızlandırılır. Değilse, veriler çağrıldıkça işlenir.
 
-3. Yardımcı Fonksiyonlar (Utilities)
+# Yardımcı Fonksiyonlar (Utilities)
 dice_metric(predicted, target)
 Segmentasyon performansını Dice skoruyla ölçer.
 
@@ -84,7 +75,7 @@ Belirtilen slice üzerinden görüntü ve segmentasyon maskesini yan yana görse
 calculate_pixels(data)
 Veri setindeki etiket maskelerinde arka plan ve ön plan piksel sayılarını toplar.
 
-4. Model Eğitimi
+# Model Eğitimi
 Projede, 3D karaciğer segmentasyonu için MONAI’dan UNet mimarisi kullanılmıştır.
 
 Veri prepare fonksiyonuyla ön işleme tabi tutulup uygun DataLoader oluşturulur.
@@ -99,5 +90,5 @@ Otomatik cihaz seçimi yapılır (GPU varsa CUDA, yoksa CPU).
 
 Eğitim 200 epoch boyunca train fonksiyonu ile gerçekleştirilir, sonuçlar model dizinine kaydedilir.
 
-5. Test Aşaması
+# Test Aşaması
 Model eğitildikten sonra test verisi üzerinde değerlendirilir. Performans metrikleri hesaplanır ve segmentasyon sonuçları görselleştirilir.
