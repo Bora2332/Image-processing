@@ -1,100 +1,103 @@
-## Veri Hazırlama
+1. Veri Hazırlama
+Bu aşamada, orijinal DICOM görüntüleri ve etiket verileri gruplara ayrılarak, derin öğrenme modellerinde yaygın olarak kullanılan NIfTI formatına dönüştürülür.
 
-Bu bölümde, orijinal DICOM görüntüleri ve etiket verileri gruplara ayrılarak, derin öğrenme modellerinde yaygın olarak kullanılan **NIfTI** formatına dönüştürülmektedir.
+Klasörlerin Gruplandırılması:
+DICOM dosyaları genellikle çok sayıda görüntü dosyasından oluşur. Bellek yönetimi ve işlem kolaylığı için, her hasta verisi 64 görüntülük alt klasörlere bölünür.
 
-### 1. Klasörlerin Gruplandırılması
+in_path: Orijinal DICOM görüntü ve etiket klasörleri (örn: D:/Task03_Liver/dicom_file/labels, D:/Task03_Liver/dicom_file/images)
 
-DICOM dosyaları genellikle çok sayıda görüntü dosyasından oluşur. Bellek yönetimi ve işlem kolaylığı için, her hasta verisi 64 görüntülük alt klasörlere bölünmektedir.
+out_path: 64 görüntülük DICOM gruplarının kaydedileceği yeni klasörler (örn: D:/Task03_Liver/dicom_groups/labels, D:/Task03_Liver/dicom_groups/images)
+Her hasta için dosyalar, maksimum 64 dosya içeren alt klasörlere taşınır.
 
-- `in_path` : Orijinal DICOM görüntü ve etiket klasörleri (örn: `D:/Task03_Liver/dicom_file/labels`, `D:/Task03_Liver/dicom_file/images`)
-- `out_path`: 64 görüntülük DICOM gruplarının kaydedileceği yeni klasörler (örn: `D:/Task03_Liver/dicom_groups/labels`, `D:/Task03_Liver/dicom_groups/images`)
+DICOM’dan NIfTI Formatına Dönüşüm:
+DICOM grupları, derin öğrenme uygulamalarında yaygın kullanılan NIfTI formatına dönüştürülür.
 
-Her hasta için dosyalar, her biri maksimum 64 dosya içeren alt klasörlere taşınır.
+dicom2nifti kütüphanesi kullanılır.
 
-### 2. DICOM’dan NIfTI Formatına Dönüşüm
+Her alt klasördeki DICOM serisi .nii.gz uzantılı NIfTI dosyasına çevrilir.
 
-DICOM grupları, derin öğrenme uygulamalarında yaygın kullanılan NIfTI formatına çevrilir.
+Dönüştürülen dosyalar sırasıyla nifti_files/images ve nifti_files/labels klasörlerine kaydedilir.
 
-- `dicom2nifti` kütüphanesi kullanılır.
-- Her alt klasördeki DICOM serisi `.nii.gz` uzantılı NIfTI dosyasına dönüştürülür.
-- Dönüştürülen dosyalar sırasıyla `nifti_files/images` ve `nifti_files/labels` klasörlerine kaydedilir.
+Etiket Verilerinin Kontrolü:
+Oluşan NIfTI dosyalarındaki etiketlerin boş olup olmadığı kontrol edilir.
 
-### 3. Etiket Verilerinin Kontrolü
+Her .nii.gz dosyası nibabel ile yüklenir.
 
-Dönüştürülen NIfTI dosyalarındaki etiketlerin boş olup olmadığı kontrol edilir.
+İçerikteki eşsiz değerler (np.unique) incelenir.
 
-- Her `.nii.gz` dosyası `nibabel` ile yüklenir.
-- Veri matrisi alınır ve içerisindeki eşsiz değerler (`np.unique`) incelenir.
-- Eğer dosyada sadece tek bir eşsiz değer varsa (genellikle 0), bu dosyanın boş olduğu anlamına gelir ve uyarı mesajı yazdırılır.
+Dosyada tek bir eşsiz değer (genellikle 0) varsa, bu dosyanın boş olduğu anlamına gelir ve uyarı verilir.
 
-### 4. Gereksinimler
+Gereksinimler:
+Bu aşama için gerekli Python paketleri şunlardır:
 
-Bu işlemler için aşağıdaki Python paketleri gereklidir:
-
-```bash
+bash
+Kopyala
+Düzenle
 pip install glob2 pytest-shutil pydicom==2.3.1 dicom2nifti==2.4.6 nibabel numpy
-## Veri Ön İşleme (Preprocessing)
+2. Veri Ön İşleme (Preprocessing)
+Medikal görüntüler, MONAI kütüphanesinin gelişmiş transformları kullanılarak modelin ihtiyacına uygun hale getirilir.
 
-Bu projede kullanılan medikal görüntüler, MONAI kütüphanesinin güçlü transformları ile ön işleme tabi tutulmaktadır. Bu sayede modeller için uygun boyut, ölçek ve formatta veriler sağlanır.
+Veri Seti Yapısı:
 
-### 1. Veri Seti Yapısı
-
-- Eğitim ve doğrulama görüntüleri NIfTI (`.nii.gz`) formatındadır.
-- Veri dizininde aşağıdaki klasör yapısı vardır:
-
+bash
+Kopyala
+Düzenle
 /path_to_data/
-├── TrainVolumes/ # Eğitim görüntüleri
-├── TrainSegmentation/ # Eğitim etiketleri
-├── TestVolumes/ # Doğrulama görüntüleri
-└── TestSegmentation/ # Doğrulama etiketleri
+├── TrainVolumes/       # Eğitim görüntüleri
+├── TrainSegmentation/  # Eğitim etiketleri
+├── TestVolumes/        # Doğrulama görüntüleri
+└── TestSegmentation/   # Doğrulama etiketleri
+prepare Fonksiyonu:
 
-### 2. `prepare` Fonksiyonu
+Veri dizinindeki dosyalar eşleştirilir ve listeler oluşturulur.
 
-Bu fonksiyon, belirtilen veri dizininden dosyaları okur ve aşağıdaki işlemleri uygular:
+Eğitim ve doğrulama için farklı transform zincirleri uygulanır.
 
-- Dosya isimlerini eşleştirerek veri listeleri oluşturur.
-- Veri setine göre farklı transform zincirleri kullanır (eğitim ve doğrulama için ayrı).
-- Görüntüler ve etiketler için kanal eksenli düzenleme yapılır (`EnsureChannelFirstD`).
-- Voxel boyutları (`pixdim`) belirtilen değere yeniden örneklenir (`Spacingd`).
-- Görüntü yoğunlukları belirlenen aralığa ölçeklenir (`ScaleIntensityRanged`).
-- Görüntülerdeki ön plan (karaciğer bölgesi) kırpılır (`CropForegroundd`).
-- Görüntü ve etiketler istenilen `spatial_size` boyutuna göre kırpılır veya pad edilir (`ResizeWithPadOrCropd`).
-- Son olarak, veriler PyTorch tensörlerine dönüştürülür (`ToTensord`).
+Kanal ekseni düzenlenir (EnsureChannelFirstD).
 
-```python
-train_transforms = Compose([
-    LoadImaged(keys=["image", "label"]),
-    EnsureChannelFirstD(keys=["image", "label"]),
-    Spacingd(keys=["image", "label"], pixdim=pixdim),
-    ScaleIntensityRanged(keys=["image"], a_min=a_min, a_max=a_max, b_min=0.0, b_max=1.0, clip=True),
-    CropForegroundd(keys=["image", "label"], source_key="image"),
-    ResizeWithPadOrCropd(keys=["image", "label"], spatial_size=spatial_size),
-    ToTensord(keys=["image", "label"])
-])
-3. Cache Kullanımı
-cache=True parametresi verilirse, CacheDataset kullanılarak veriler belleğe önceden yüklenir ve eğitim süreci hızlanır.
+Voxel boyutları yeniden örneklenir (Spacingd).
 
-Değilse, Dataset ile her çağrıda veriler transform edilerek yüklenir.
+Görüntü yoğunlukları normalize edilir (ScaleIntensityRanged).
 
-### Utilities partı
+Ön plan (karaciğer bölgesi) kırpılır (CropForegroundd).
+
+Görüntüler hedef boyuta göre kırpılır veya pad edilir (ResizeWithPadOrCropd).
+
+Son olarak PyTorch tensörlerine dönüştürülür (ToTensord).
+
+Cache Kullanımı:
+cache=True seçeneğiyle veriler belleğe önceden yüklenip eğitim süreci hızlandırılır. Değilse, veriler çağrıldıkça işlenir.
+
+3. Yardımcı Fonksiyonlar (Utilities)
 dice_metric(predicted, target)
-Modelin segmentasyon performansını ölçmek için Dice skoru hesaplar. Tahmin edilen maskeyle gerçek etiketi karşılaştırarak doğruluğu 0 ile 1 arasında bir değer olarak verir.
+Segmentasyon performansını Dice skoruyla ölçer.
 
 calculate_weigths(val1, val2)
-Veri setindeki arka plan ve ön plan piksel sayılarına göre sınıf ağırlıklarını dengeler. Böylece azınlık sınıfın etkisi artırılarak eğitim dengeli hale getirilir.
+Azınlık sınıfın etkisini artırmak için arka plan ve ön plan piksel sayılarına göre ağırlık hesaplar.
 
-train(model, data_in, loss, optim, max_epochs, model_dir, test_interval=1, device=torch.device("cuda:0"))
-Modeli belirtilen epoch sayısı boyunca eğitir. Eğitim ve doğrulama verisi üzerinde kayıp ve Dice skorlarını hesaplar, en iyi modeli kayıt eder. GPU desteği mevcuttur.
+train(model, data_in, loss, optim, max_epochs, model_dir, ...)
+Modeli belirlenen epoch sayısı boyunca eğitir, performans metriklerini hesaplar, en iyi modeli kaydeder.
 
 show_patient(data, SLICE_NUMBER=1, train=True, test=False)
-Veri setinden bir hastanın belirli bir dilimini (slice) görselleştirir. Hem görüntüyü hem segmentasyon maskesini yan yana göstererek sonuçları hızlıca incelemeyi sağlar.
+Belirtilen slice üzerinden görüntü ve segmentasyon maskesini yan yana görselleştirir.
 
 calculate_pixels(data)
-Veri setindeki tüm etiket maskelerinde arka plan ve ön plan piksel sayılarını toplar. Veri dengesizliği analizi ve ağırlıklandırma için temel veri sağlar.
+Veri setindeki etiket maskelerinde arka plan ve ön plan piksel sayılarını toplar.
 
-### Train partı
-Bu proje kapsamında, 3 boyutlu karaciğer segmentasyonu için MONAI kütüphanesinden UNet mimarisi kullanılmıştır. Öncelikle, prepare fonksiyonu ile medikal görüntüler ve etiketler ön işleme tabi tutularak uygun formatta ve boyutta veri yükleyiciler (DataLoader) oluşturulur. Model, 3D uzaysal veriler için tasarlanmış olup, girişte tek kanal (grayscale) görüntü kabul eder ve çıktı olarak iki sınıf (arka plan ve karaciğer) üretir. Eğitim sırasında DiceLoss fonksiyonu ile segmentasyon doğruluğu optimize edilir. Optimizasyon için Adam algoritması tercih edilmiş ve küçük öğrenme oranı ile ağırlık çürümesi (weight_decay) uygulanmıştır. Kodda otomatik olarak GPU varsa CUDA cihazı, yoksa CPU kullanılacak şekilde cihaz seçimi yapılmaktadır. Son olarak, tanımlanan model, veri ve kayıp fonksiyonu ile 200 epoch boyunca train fonksiyonu çağrılarak eğitilir; eğitim sonuçları belirtilen model dizinine kaydedilir.
+4. Model Eğitimi
+Projede, 3D karaciğer segmentasyonu için MONAI’dan UNet mimarisi kullanılmıştır.
 
-### Testing partı
+Veri prepare fonksiyonuyla ön işleme tabi tutulup uygun DataLoader oluşturulur.
 
-Burada modelin sonucu doğrultusunda testing aşamasını yaptım ve grafikleri gösterdim
+Model, tek kanal giriş (grayscale), iki sınıf çıkış (arka plan ve karaciğer) şeklindedir.
+
+DiceLoss kullanılarak segmentasyon doğruluğu optimize edilir.
+
+Adam optimizasyon algoritması düşük öğrenme oranı ve ağırlık çürümesi ile kullanılır.
+
+Otomatik cihaz seçimi yapılır (GPU varsa CUDA, yoksa CPU).
+
+Eğitim 200 epoch boyunca train fonksiyonu ile gerçekleştirilir, sonuçlar model dizinine kaydedilir.
+
+5. Test Aşaması
+Model eğitildikten sonra test verisi üzerinde değerlendirilir. Performans metrikleri hesaplanır ve segmentasyon sonuçları görselleştirilir.
