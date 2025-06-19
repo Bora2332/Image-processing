@@ -1,4 +1,4 @@
-1. Veri Hazırlama
+ # 1. Veri Hazırlama
 Bu aşamada, orijinal DICOM görüntüleri ve etiket verileri gruplara ayrılarak, derin öğrenme modellerinde yaygın olarak kullanılan NIfTI formatına dönüştürülür.
 
 Klasörlerin Gruplandırılması:
